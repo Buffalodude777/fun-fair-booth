@@ -4,7 +4,6 @@ from PIL import Image
 import io
 import smtplib
 from email.message import EmailMessage
-
 # --- CONFIGURATION ---
 st.set_page_config(page_title="Coding Club Photo Booth", layout="centered")
 st.title("🎡 Fun Fair AI Photo Booth")
