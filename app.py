@@ -18,7 +18,8 @@ bg_options = {
 }
 
 # SENDER EMAIL SETTINGS
-
+SENDER_EMAIL = "mmpsfunfairbooth2026@gmail.com"  # <--- Put your Gmail here
+SENDER_PASSWORD = "jiygbxfynjxubrnv"         # <--- Put your 16-digit App Password here
 
 # --- 2. USER INTERFACE ---
 with st.sidebar:
