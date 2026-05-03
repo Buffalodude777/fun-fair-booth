@@ -11,10 +11,10 @@ st.title("🎡 Fun Fair AI Photo Booth")
 # --- 1. SETTINGS & BACKGROUNDS ---
 # Update these names to match the files in your 'backgrounds' folder!
 bg_options = {
-    "Space Station": "backgrounds/space.jpg",
-    "Tropical Beach": "backgrounds/beach.jpg",
-    "Cyberpunk City": "backgrounds/cyber.jpg",
-    "Tung Tung Tung Sahur": "backgrounds/brainrot.png"
+    "Space Station": "space.jpg",
+    "Tropical Beach": "beach.jpg",
+    "Cyberpunk City": "cyber.jpg",
+    "Tung Tung Tung Sahur": "brainrot.png"
 }
 
 # SENDER EMAIL SETTINGS
