@@ -2,16 +2,19 @@ import streamlit as st
 from rembg import remove
 from PIL import Image
 import io
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.image import MIMEImage
 
-# 1. Page Setup
+# 1. Page Configuration
 st.set_page_config(page_title="MMPS Fun Fair Photo Booth", page_icon="📸")
 st.title("📸 MMPS Fun Fair 2026")
-st.subheader("AI Photo Booth - Custom Backgrounds")
+st.subheader("AI Photo Booth - Search & Email")
 
-# 2. Sidebar - Search and Selection
+# 2. Sidebar Setup
 st.sidebar.header("Background Gallery")
 
-# The list of backgrounds - Make sure these match your GitHub filenames exactly!
 bg_options = {
     "MMPS Fun Fair 2026": "fair2026.jpg",
     "Brainrot": "brainrot.png",
@@ -21,60 +24,76 @@ bg_options = {
     "Minecraft World": "mc.png"
 }
 
-# Add a Search Bar in the sidebar
 search_query = st.sidebar.text_input("🔍 Search backgrounds:", "")
-
-# Filter the list based on the search query
 filtered_options = [name for name in bg_options.keys() if search_query.lower() in name.lower()]
 
 if filtered_options:
     selection = st.sidebar.selectbox("Choose your vibe:", filtered_options)
 else:
-    st.sidebar.warning("No backgrounds found with that name!")
-    selection = list(bg_options.keys())[0] # Default to the first one if search is empty
+    st.sidebar.warning("No backgrounds found!")
+    selection = list(bg_options.keys())[0]
 
-# 3. Camera Input
+# 3. Main Camera Interface
 img_file = st.camera_input("Take a photo!")
 
 if img_file:
     input_image = Image.open(img_file)
     
-    # Progress bar and spinner to keep the connection alive
-    with st.spinner('AI is waking up and removing background... (Hold tight!)'):
+    with st.spinner('AI is processing...'):
         try:
             # 4. Remove Background
             output_image = remove(input_image)
             
-            # 5. Load the Background
+            # 5. Composite Image
             bg_path = bg_options[selection]
             background = Image.open(bg_path).convert("RGBA")
-            
-            # Resize background to match photo
             background = background.resize(output_image.size)
-            
-            # Composite (Put the person on the background)
             final_image = Image.alpha_composite(background, output_image)
             
-            # Display Result
             st.image(final_image, caption=f"Looking good in the {selection}!")
             
-            # 6. Save/Email Section
+            # 6. Email Functionality
             st.divider()
-            email_target = st.text_input("Enter your email to get your photo:")
-            if st.button("Email Me My Photo"):
+            st.write("### 📧 Send to your phone")
+            email_target = st.text_input("Enter email:")
+            
+            if st.button("Send Photo"):
                 if email_target:
-                    # Check if Secrets are configured in Streamlit Dashboard
-                    if "SENDER_EMAIL" in st.secrets:
-                        st.success(f"Sending to {email_target}...")
-                        # Your email logic would go here
+                    # Check if secrets are set in Streamlit Dashboard
+                    if "SENDER_EMAIL" in st.secrets and "SENDER_PASSWORD" in st.secrets:
+                        try:
+                            # Prepare the email
+                            msg = MIMEMultipart()
+                            msg['Subject'] = f"Your MMPS Fun Fair Photo - {selection}"
+                            msg['From'] = st.secrets["SENDER_EMAIL"]
+                            msg['To'] = email_target
+                            
+                            text = MIMEText("Check out your AI photo from the MMPS Fun Fair 2026!")
+                            msg.attach(text)
+                            
+                            # Convert PIL image to bytes for the attachment
+                            buf = io.BytesIO()
+                            final_image.save(buf, format="PNG")
+                            img_data = buf.getvalue()
+                            
+                            image = MIMEImage(img_data, name=f"fun_fair_photo.png")
+                            msg.attach(image)
+                            
+                            # Connect to Gmail Server
+                            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+                                server.login(st.secrets["SENDER_EMAIL"], st.secrets["SENDER_PASSWORD"])
+                                server.sendmail(st.secrets["SENDER_EMAIL"], email_target, msg.as_string())
+                            
+                            st.success(f"✅ Sent! Check your inbox (and spam folder) {email_target}!")
+                        except Exception as e:
+                            st.error(f"Email failed: {e}")
                     else:
-                        st.error("Secrets not found! Check your Streamlit Dashboard Settings.")
+                        st.error("Secrets not found! Add SENDER_EMAIL and SENDER_PASSWORD to Streamlit Settings.")
                 else:
-                    st.warning("Please enter an email address.")
+                    st.warning("Please enter a valid email address.")
                     
         except Exception as e:
-            st.error(f"Something went wrong: {e}")
-            st.info("Try refreshing the page—the AI brain is still warming up.")
+            st.error(f"Error: {e}")
 
 st.sidebar.write("---")
-st.sidebar.write("Built for MMPS Fun Fair 2026 🎡")
+st.sidebar.write("🎡 Built for MMPS Fun Fair 2026")
