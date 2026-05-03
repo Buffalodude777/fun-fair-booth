@@ -4,7 +4,6 @@ from PIL import Image
 import io
 import smtplib
 from email.message import EmailMessage
-
 # --- CONFIGURATION ---
 st.set_page_config(page_title="Coding Club Photo Booth", layout="centered")
 st.title("🎡 Fun Fair AI Photo Booth")
@@ -19,8 +18,7 @@ bg_options = {
 }
 
 # SENDER EMAIL SETTINGS
-SENDER_EMAIL = "mmpsfunfairbooth2026@gmail.com"  # <--- Put your Gmail here
-SENDER_PASSWORD = "jiygbxfynjxubrnv"         # <--- Put your 16-digit App Password here
+
 
 # --- 2. USER INTERFACE ---
 with st.sidebar:
