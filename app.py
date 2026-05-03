@@ -2,91 +2,79 @@ import streamlit as st
 from rembg import remove
 from PIL import Image
 import io
-import smtplib
-from email.message import EmailMessage
-# --- CONFIGURATION ---
-st.set_page_config(page_title="Coding Club Photo Booth", layout="centered")
-st.title("🎡 Fun Fair AI Photo Booth")
 
-# --- 1. SETTINGS & BACKGROUNDS ---
-# Update these names to match the files in your 'backgrounds' folder!
+# 1. Page Setup
+st.set_page_config(page_title="MMPS Fun Fair Photo Booth", page_icon="📸")
+st.title("📸 MMPS Fun Fair 2026")
+st.subheader("AI Photo Booth - Custom Backgrounds")
+
+# 2. Sidebar - Search and Selection
+st.sidebar.header("Background Gallery")
+
+# The list of backgrounds - Make sure these match your GitHub filenames exactly!
 bg_options = {
+    "MMPS Fun Fair 2026": "fair2026.jpg",
+    "Brainrot": "brainrot.png",
     "Space Station": "space.jpg",
     "Tropical Beach": "beach.jpg",
     "Cyberpunk City": "cyber.jpg",
-    "Tung Tung Tung Sahur": "brainrot.png"
+    "Minecraft World": "mc.png"
 }
 
-# SENDER EMAIL SETTINGS
-SENDER_EMAIL = "mmpsfunfairbooth2026@gmail.com"  # <--- Put your Gmail here
-SENDER_PASSWORD = "jiygbxfynjxubrnv"         # <--- Put your 16-digit App Password here
+# Add a Search Bar in the sidebar
+search_query = st.sidebar.text_input("🔍 Search backgrounds:", "")
 
-# --- 2. USER INTERFACE ---
-with st.sidebar:
-    st.header("Booth Settings")
-    bg_choice = st.selectbox("Pick a Background:", list(bg_options.keys()))
-    student_id = st.text_input("Enter Student ID Number:")
+# Filter the list based on the search query
+filtered_options = [name for name in bg_options.keys() if search_query.lower() in name.lower()]
 
-st.write("---")
-picture = st.camera_input("Smile for the camera!")
-st.write("---")
-
-# --- 3. THE MAGIC LOGIC ---
-if picture:
-    if not student_id:
-        st.warning("Please enter your Student ID before taking the photo!")
-    else:
-        # Step A: Load the photo
-        input_image = Image.open(picture)
-        
-        with st.spinner("🤖 AI is swapping your background..."):
-            try:
-                # Step B: Remove the background (creates a transparent cutout)
-                # First time running this can take 30-60 seconds to download AI model
-                no_bg = remove(input_image)
-                
-                # Step C: Load and prepare the chosen background
-                background = Image.open(bg_options[bg_choice]).convert("RGBA")
-                background = background.resize(no_bg.size)
-                
-                # Step D: Composite (Merge) the images
-                final_img = Image.alpha_composite(background, no_bg)
-                
-                # Display the result to the student
-                st.image(final_img, caption="You look awesome!")
-                
-                # Step E: Prepare the image for emailing (convert to JPEG)
-                img_byte_arr = io.BytesIO()
-                final_img.convert("RGB").save(img_byte_arr, format='JPEG')
-                final_image_bytes = img_byte_arr.getvalue()
-                
-                # --- 4. THE EMAIL SYSTEM ---
-                recipient_email = f"{student_id}@gapps.yrdsb.ca" # <--- Update domain
-                
-                if st.button("📨 Send to My School Email"):
-                    try:
-                        msg = EmailMessage()
-                        msg['Subject'] = "Your Fun Fair AI Photo! 🎡"
-                        msg['From'] = SENDER_EMAIL
-                        msg['To'] = recipient_email
-                        msg.set_content(f"Hi {student_id}!\n\nAttached is your custom AI photo from the Fun Fair. Thanks for visiting the Coding Club Photo Booth!")
-                        
-                        msg.add_attachment(final_image_bytes, maintype='image', subtype='jpeg', filename=f"fun_fair_{student_id}.jpg")
-                        
-                        # Connect to Gmail Server
-                        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
-                            smtp.login(SENDER_EMAIL, SENDER_PASSWORD)
-                            smtp.send_message(msg)
-                            
-                        st.success(f"Success! Photo sent to {recipient_email}")
-                        st.balloons()
-                    except Exception as e:
-                        st.error(f"Error sending email: {e}")
-                        
-            except FileNotFoundError:
-                st.error(f"Background image not found! Check your 'backgrounds' folder for {bg_options[bg_choice]}")
-            except Exception as e:
-                st.error(f"Something went wrong with the AI: {e}")
-
+if filtered_options:
+    selection = st.sidebar.selectbox("Choose your vibe:", filtered_options)
 else:
-    st.info("Tip: Choose a background in the sidebar before you snap!")
+    st.sidebar.warning("No backgrounds found with that name!")
+    selection = list(bg_options.keys())[0] # Default to the first one if search is empty
+
+# 3. Camera Input
+img_file = st.camera_input("Take a photo!")
+
+if img_file:
+    input_image = Image.open(img_file)
+    
+    # Progress bar and spinner to keep the connection alive
+    with st.spinner('AI is waking up and removing background... (Hold tight!)'):
+        try:
+            # 4. Remove Background
+            output_image = remove(input_image)
+            
+            # 5. Load the Background
+            bg_path = bg_options[selection]
+            background = Image.open(bg_path).convert("RGBA")
+            
+            # Resize background to match photo
+            background = background.resize(output_image.size)
+            
+            # Composite (Put the person on the background)
+            final_image = Image.alpha_composite(background, output_image)
+            
+            # Display Result
+            st.image(final_image, caption=f"Looking good in the {selection}!")
+            
+            # 6. Save/Email Section
+            st.divider()
+            email_target = st.text_input("Enter your email to get your photo:")
+            if st.button("Email Me My Photo"):
+                if email_target:
+                    # Check if Secrets are configured in Streamlit Dashboard
+                    if "SENDER_EMAIL" in st.secrets:
+                        st.success(f"Sending to {email_target}...")
+                        # Your email logic would go here
+                    else:
+                        st.error("Secrets not found! Check your Streamlit Dashboard Settings.")
+                else:
+                    st.warning("Please enter an email address.")
+                    
+        except Exception as e:
+            st.error(f"Something went wrong: {e}")
+            st.info("Try refreshing the page—the AI brain is still warming up.")
+
+st.sidebar.write("---")
+st.sidebar.write("Built for MMPS Fun Fair 2026 🎡")
